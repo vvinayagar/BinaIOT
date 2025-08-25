@@ -1,0 +1,235 @@
+/* full-screen white rim like the photo */
+.hmi-viewport{
+  width:100%;
+  min-height:100vh;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding-top:40px;
+  background:#ffffff;
+}
+
+/* main blue panel */
+.hmi-panel{
+  width: 760px;
+  background:#0105b9;            /* bright royal blue */
+  border-radius:12px;
+  padding:0;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+  color:#ffffff;
+  border:1px solid rgba(0,0,0,.25);
+  font-size:16px;
+}
+
+/* title bar */
+.hmi-titlebar{
+  position:relative;
+  background:#b9c3ee;            /* light bluish header */
+  height:40px;
+  border-top-left-radius:12px;
+  border-top-right-radius:12px;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+}
+
+.hmi-title{
+  font-weight:700;
+  color:#0b1f63;
+  font-size:20px;
+}
+
+/* red X at top-right like HMI */
+.hmi-x{
+  position:absolute;
+  right:8px; 
+  top:6px;
+  width:44px; 
+  height:28px;
+  background:#e23b3b;
+  border:2px solid #ffffff;
+  border-radius:4px;
+  color:#fff;
+  font-weight:900;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+  cursor:pointer;
+}
+
+.hmi-x:hover{
+  background:#d63434;
+}
+
+/* inner white rounded border seen in photo */
+.hmi-inner-border{
+  margin:12px 14px 16px;
+  padding:12px 14px 14px;
+  border:2px solid #ffffff;
+  border-radius:10px;
+  background:transparent;
+}
+
+/* rows + labels */
+.hmi-row{ 
+  margin-bottom:12px; 
+  display:flex;
+  align-items:center;
+}
+
+.hmi-row.tight{ 
+  margin-top:-6px; 
+  margin-bottom:12px;
+}
+
+.hmi-label{
+  color:#e9eefc;
+  font-weight:600;
+  display:flex; 
+  align-items:center;
+  letter-spacing:.2px;
+  width:280px;
+  flex-shrink:0;
+}
+
+.hmi-label.rightish{
+  justify-content:flex-end;
+  padding-right:20px;
+  width:200px;
+  flex-shrink:0;
+}
+
+/* Speed row special layout */
+.hmi-speed-row{
+  display:flex;
+  align-items:center;
+  margin-bottom:12px;
+}
+
+.hmi-speed-label{
+  color:#e9eefc;
+  font-weight:600;
+  letter-spacing:.2px;
+  width:280px;
+  flex-shrink:0;
+}
+
+.hmi-speed-input{
+  margin-right:20px;
+}
+
+.hmi-roll-section{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.hmi-roll-label{
+  color:#e9eefc;
+  font-weight:600;
+  letter-spacing:.2px;
+  margin-right:8px;
+}
+
+/* input look: light grey with strong white edge like the HMI */
+.hmi-input{
+  background:#efefef !important;
+  color:#111 !important;
+  border:2px solid #ffffff !important;
+  border-radius:6px !important;
+  height:36px;
+  width: 150px;
+  padding:6px 10px !important;
+  font-weight:700;
+  text-align:center;
+  letter-spacing:.2px;
+  box-shadow: 0 2px 4px rgba(0,0,0,.2) !important;
+}
+
+.hmi-input:focus{ 
+  outline:none !important; 
+  box-shadow:0 0 0 3px rgba(255,255,255,.25) !important; 
+}
+
+.hmi-input.small{ 
+  width:70px; 
+  text-align:center; 
+}
+
+.hmi-input.dark{ 
+  background:#0f0f14 !important; 
+  color:#fff !important; 
+}
+
+.hmi-input.narrow{ 
+  width: 150px; 
+  text-align:center; 
+}
+
+.hmi-input.wide{
+  width: 150px;
+}
+
+/* unit text inside the input (mm, mm/s) */
+.hmi-input-wrap{
+  position:relative;
+  display:inline-block;
+}
+
+.hmi-input-wrap .hmi-input{
+  padding-right:10px !important;            /* space for unit */
+}
+
+.hmi-unit{
+  position:absolute;
+  right:20px; 
+  top:50%;
+  transform:translateY(-50%);
+  color:#3a3a3a;
+  font-weight:700;
+  pointer-events:none;
+  font-size:14px;
+}
+
+/* neon green reset with black border + slight bevel */
+.hmi-reset{
+  background:#04be0e !important;
+  color:#fff !important;
+  border:2px solid #fefefe !important;
+  font-weight:800 !important;
+  padding:6px 18px !important;
+  border-radius:6px !important;
+  margin-left:10px;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.7),
+    0 2px 4px rgba(0,0,0,.3) !important;
+}
+
+.hmi-reset:hover{ 
+  filter:brightness(0.95) !important;
+  background:#04be0e !important;
+}
+
+.hmi-reset:active{
+  transform:translateY(1px);
+}
+
+/* Product count rows */
+.hmi-product-row{
+  display:flex;
+  align-items:center;
+  margin-bottom:12px;
+}
+
+.hmi-product-label{
+  color:#e9eefc;
+  font-weight:600;
+  letter-spacing:.2px;
+  width:280px;
+  flex-shrink:0;
+}
+
+.hmi-product-input{
+  margin-right:10px;
+}
