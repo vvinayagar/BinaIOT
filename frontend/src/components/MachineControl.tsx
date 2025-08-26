@@ -27,7 +27,7 @@ export default function MachineControl() {
     }
   };
 
-  const savePartial = async (patch) => {
+  const savePartial = async (patch: any) => {
     const next = { ...s, ...patch };
     setS(next);
     try {
@@ -58,7 +58,7 @@ export default function MachineControl() {
   useEffect(() => { fetchSettings(); }, []);
 
   // numeric change helper (save on change to feel like PLC HMI)
-  const onNum = (key) => (e) => {
+  const onNum = (key:any) => (e:any) => {
     const val = e.target.value === "" ? "" : Number(e.target.value);
     savePartial({ [key]: val });
   };
