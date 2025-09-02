@@ -1,9 +1,32 @@
+// src/components/MachineControl.tsx
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import "./MachineControl.css";
+import { Col, Container, Row } from "react-bootstrap";
+
+type ModbusStatus = {
+  float1: number | null;
+  float2: number | null;
+  raw: number[];
+};
+
+// Keep your existing shape for demo defaults (inputs stay rendered)
+type MachineSettings = {
+  auto_s1_speed: number | string;
+  auto_s1_acc: number | string;
+  auto_s1_dec: number | string;
+  auto_s1_single_step: number | string;
+  auto_s1_last_step: number | string;
+  no_of_roll_left: number | string;
+  no_of_roll_right: number | string;
+  product_count_pcs: number | string;
+  product_count_set: number | string;
+};
+
+const API = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 export default function MachineControl() {
-  const [s, setS] = useState({
+  // Demo defaults (we won’t save these anywhere)
+  const [s, setS] = useState<MachineSettings>({
     auto_s1_speed: 15.0,
     auto_s1_acc: 150,
     auto_s1_dec: 150,
@@ -15,57 +38,50 @@ export default function MachineControl() {
     product_count_set: 1356,
   });
 
+  const [m, setM] = useState<ModbusStatus | null>(null);
   const [visible, setVisible] = useState(true);
 
-  // --- API ---
-  const fetchSettings = async () => {
-    try {
-      const res = await axios.get("/api/machine-settings/");
-      if (Array.isArray(res.data) && res.data.length) setS(res.data[0]);
-    } catch (e) {
-      // keep defaults if API not up
-    }
-  };
+  // ---- Poll /status/ every 1s ----
+  useEffect(() => {
+    let stopped = false;
+    let timer: number | undefined;
+    let ac: AbortController | null = null;
 
-  const savePartial = async (patch: any) => {
-    const next = { ...s, ...patch };
-    setS(next);
-    try {
-      await axios.patch("/api/machine-settings/1/", patch);
-    } catch (e) {
-      /* ignore for UI demo */
-    }
-  };
+    const tick = async () => {
+      ac?.abort();
+      ac = new AbortController();
+      try {
+        const res = await fetch(`${API}/status/`, { signal: ac.signal, cache: "no-store" });
+        if (!res.ok) throw new Error(String(res.status));
+        const json = (await res.json()) as ModbusStatus;
+        if (!stopped) setM(json);
+      } catch {
+        // ignore transient errors for demo
+      }
+    };
 
-  const resetPieces = async () => {
-    try {
-      const res = await axios.post("/api/machine-settings/reset-pcs/");
-      setS((old) => ({ ...old, product_count_pcs: res.data.product_count_pcs ?? 0 }));
-    } catch {
-      setS((old) => ({ ...old, product_count_pcs: 0 }));
-    }
-  };
+    tick(); // immediate
+    timer = window.setInterval(tick, 1000);
 
-  const resetBundles = async () => {
-    try {
-      const res = await axios.post("/api/machine-settings/reset-set/");
-      setS((old) => ({ ...old, product_count_set: res.data.product_count_set ?? 0 }));
-    } catch {
-      setS((old) => ({ ...old, product_count_set: 0 }));
-    }
-  };
+    return () => {
+      stopped = true;
+      if (timer) window.clearInterval(timer);
+      ac?.abort();
+    };
+  }, []);
 
-  useEffect(() => { fetchSettings(); }, []);
+  // numeric change helper for demo-only local edits
+  const onNum =
+    (key: keyof MachineSettings) =>
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value === "" ? "" : Number(e.target.value);
+        setS((old) => ({ ...old, [key]: val }));
+      };
 
-  // numeric change helper (save on change to feel like PLC HMI)
-  const onNum = (key:any) => (e:any) => {
-    const val = e.target.value === "" ? "" : Number(e.target.value);
-    savePartial({ [key]: val });
-  };
+  if (!visible) return <></>;
 
-  if(!visible){
-    return null;
-  }
+  // For the demo: show float1 inside Auto S1 Speed, float2 beside it.
+  const speedValue = m?.float1 ?? s.auto_s1_speed;
 
   return (
     <div className="hmi-viewport">
@@ -73,117 +89,202 @@ export default function MachineControl() {
         {/* top title bar with X */}
         <div className="hmi-titlebar">
           <span className="hmi-title">Auto Setting</span>
-          <button className="hmi-x" onClick={() => setVisible(false)}> 
+          <button className="hmi-x" onClick={() => setVisible(false)}>
             <span>✖</span>
           </button>
         </div>
 
         <div className="hmi-inner-border">
-          {/* Speed row with No of Roll on same line */}
-          <div className="hmi-speed-row">
-            <span className="hmi-speed-label">Auto S1 Speed :</span>
-            <div className="hmi-input-wrap hmi-speed-input">
-              <input
-                className="hmi-input wide"
-                type="number"
-                step="0.1"
-                value={s.auto_s1_speed}
-                onChange={onNum("auto_s1_speed")}
-              />
-              <span className="hmi-unit">mm/s</span>
-            </div>
-            <div className="hmi-roll-section">
-              <span className="hmi-roll-label">No of Roll :</span>
-              <input
-                className="hmi-input small"
-                type="number"
-                value={s.no_of_roll_left}
-                onChange={onNum("no_of_roll_left")}
-              />
-              <input
-                className="hmi-input small dark"
-                type="number"
-                value={s.no_of_roll_right}
-                onChange={onNum("no_of_roll_right")}
-              />
-            </div>
-          </div>
+          <Container>
+            {/* Live values strip from /status/ */}
+            {/* <Row className="mb-2 mt-3">
+              <Col md={6}>
+                <div className="d-flex align-items-center gap-2">
+                  <span className="hmi-label">Live Float1:</span>
+                  <span className="hmi-value">
+                    {m?.float1 == null ? "—" : m.float1.toFixed(2)}
+                  </span>
+                  <span className="hmi-unit">mm/s</span>
+                </div>
+              </Col>
+              <Col md={6}>
+                <div className="d-flex align-items-center gap-2">
+                  <span className="hmi-label">Live Float2:</span>
+                  <span className="hmi-value">
+                    {m?.float2 == null ? "—" : m.float2.toFixed(2)}
+                  </span>
+                </div>
+              </Col>
+              <Col md={12}>
+                <div className="text-muted small">raw: [{m?.raw?.join(", ") ?? ""}]</div>
+              </Col>
+            </Row> */}
 
-          {/* Regular rows */}
-          <div className="hmi-row">
-            <span className="hmi-label">Auto S1 Acc :</span>
-            <input
-              className="hmi-input"
-              type="number"
-              value={s.auto_s1_acc}
-              onChange={onNum("auto_s1_acc")}
-            />
-          </div>
+            {/* Speed row with No of Roll on same line */}
+            <Row className="mt-3">
+              <Col md={6}>
+                <Row>
+                  <Col>
+                    <span className="hmi-speed-label">Auto S1 Speed :</span>
+                  </Col>
+                  <Col>
+                    {/* Mirror float1 into this field for demo */}
+                    <input
+                      className="form-control hmi-input"
+                      type="number"
+                      step="0.1"
+                      value={speedValue}
+                      onChange={onNum("auto_s1_speed")}
+                    />
+                    <span className="hmi-unit">mm/s</span>
+                    <div className="small text-muted">
+                      (live from /status/: {m?.float1 == null ? "—" : m.float1.toFixed(2)})
+                    </div>
+                  </Col>
+                </Row>
+              </Col>
 
-          <div className="hmi-row">
-            <span className="hmi-label">Auto S1 Dec :</span>
-            <input
-              className="hmi-input"
-              type="number"
-              value={s.auto_s1_dec}
-              onChange={onNum("auto_s1_dec")}
-            />
-          </div>
+              <Col>
+                <Row className="mt-3 m-sm-0">
+                  <Col>
+                    <span className="hmi-roll-label">No of Roll :</span>
+                  </Col>
+                  <Col>
+                    <input
+                      className="form-control hmi-input small"
+                      type="number"
+                      value={s.no_of_roll_left}
+                      onChange={onNum("no_of_roll_left")}
+                    />
+                  </Col>
+                  <Col>
+                    <input
+                      className="form-control hmi-input small dark"
+                      type="number"
+                      value={s.no_of_roll_right}
+                      onChange={onNum("no_of_roll_right")}
+                    />
+                  </Col>
+                </Row>
+              </Col>
+            </Row>
 
-          <div className="hmi-row">
-            <span className="hmi-label">Auto S1 Single Step mm :</span>
-            <div className="hmi-input-wrap">
-              <input
-                className="hmi-input"
-                type="number"
-                step="0.1"
-                value={s.auto_s1_single_step}
-                onChange={onNum("auto_s1_single_step")}
-              />
-              <span className="hmi-unit">mm</span>
-            </div>
-          </div>
+            {/* Regular rows (unchanged demo inputs) */}
+            <Row className="mb-3">
+              <Col lg={3} md={3}>
+                <span className="hmi-label">Auto S1 Acc :</span>
+              </Col>
+              <Col>
+                <input
+                  className="form-control hmi-input"
+                  type="number"
+                  value={s.auto_s1_acc}
+                  onChange={onNum("auto_s1_acc")}
+                />
+              </Col>
+            </Row>
 
-          <div className="hmi-row">
-            <span className="hmi-label">Auto S1 Last Step mm :</span>
-            <div className="hmi-input-wrap">
-              <input
-                className="hmi-input"
-                type="number"
-                step="0.1"
-                value={s.auto_s1_last_step}
-                onChange={onNum("auto_s1_last_step")}
-              />
-              <span className="hmi-unit">mm</span>
-            </div>
-          </div>
+            <Row className="mb-3">
+              <Col lg={3} md={3}>
+                <span className="hmi-label">Auto S1 Dec :</span>
+              </Col>
+              <Col>
+                <input
+                  className="form-control hmi-input"
+                  type="number"
+                  value={s.auto_s1_dec}
+                  onChange={onNum("auto_s1_dec")}
+                />
+              </Col>
+            </Row>
 
-          {/* Product count rows with reset buttons */}
-          <div className="hmi-product-row">
-            <span className="hmi-product-label">Product Con (Psc) :</span>
-            <input
-              className="hmi-input narrow hmi-product-input"
-              type="number"
-              value={s.product_count_pcs}
-              onChange={onNum("product_count_pcs")}
-            />
-            <button type="button" className="hmi-reset" onClick={resetPieces}>
-              Reset
-            </button>
-          </div>
+            <Row className="mb-3">
+              <Col lg={3} md={3}>
+                <span className="hmi-label">Auto S1 Single Step mm :</span>
+              </Col>
+              <Col>
+                <input
+                  className="form-control hmi-input"
+                  type="number"
+                  step="0.1"
+                  value={s.auto_s1_single_step}
+                  onChange={onNum("auto_s1_single_step")}
+                />
+              </Col>
+            </Row>
 
-          <div className="hmi-product-row">
-            <span className="hmi-product-label">Product Con (Set) :</span>
-            <input
-              className="hmi-input narrow hmi-product-input"
-              type="number"
-              value={s.product_count_set}
-              onChange={onNum("product_count_set")}
-            />
-            <button type="button" className="hmi-reset" onClick={resetBundles}>
-              Reset
-            </button>
-          </div>
+            <Row className="mb-3">
+              <Col lg={3} md={3}>
+                <span className="hmi-label">Auto S1 Last Step mm :</span>
+              </Col>
+              <Col>
+                <input
+                  className="form-control hmi-input"
+                  type="number"
+                  step="0.1"
+                  value={s.auto_s1_last_step}
+                  onChange={onNum("auto_s1_last_step")}
+                />
+                <span className="hmi-unit">mm</span>
+              </Col>
+            </Row>
+
+            {/* Product count rows with reset buttons (local-only demo) */}
+            <Row className="mb-3">
+              <Col lg={3} md={3}>
+                <span className="hmi-label">Product Con (Psc):</span>
+              </Col>
+              <Col>
+                <Row>
+                  <Col lg={9} md={9}>
+                    <input
+                      className="form-control hmi-input narrow hmi-product-input"
+                      type="number"
+                      value={m?.raw?.[0] ?? s.product_count_pcs}
+                      onChange={onNum("product_count_pcs")}
+                    />
+                  </Col>
+                  <Col className="mt-3 m-sm-0" lg={3} md={3} sm={12}>
+                    <button
+                      type="button"
+                      className="btn btn-primary hmi-reset"
+                      onClick={() => setS((o) => ({ ...o, product_count_pcs: 0 }))}
+                    >
+                      Reset
+                    </button>
+                  </Col>
+                </Row>
+              </Col>
+            </Row>
+
+            <Row className="mb-3">
+              <Col lg={3} md={3}>
+                <span className="hmi-product-label">Product Con (Set) :</span>
+              </Col>
+              <Col>
+                <Row>
+                  <Col lg={9} md={9}>
+                    <input
+                      className="form-control hmi-input narrow hmi-product-input"
+                      type="number"
+                      value={m?.raw?.[2] ?? s.product_count_pcs}
+
+                      onChange={onNum("product_count_set")}
+                    />
+                  </Col>
+                  <Col className="mt-3 m-sm-0" lg={3} md={3} sm={12}>
+                    <button
+                      type="button"
+                      className="btn btn-primary hmi-reset"
+                      onClick={() => setS((o) => ({ ...o, product_count_set: 0 }))}
+                    >
+                      Reset
+                    </button>
+                  </Col>
+                </Row>
+              </Col>
+            </Row>
+          </Container>
         </div>
       </div>
     </div>

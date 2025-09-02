@@ -9,4 +9,5 @@ router.register(r'machine-settings', MachineSettingViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
+    path('', include('modbus_reader.urls')),
 ]
