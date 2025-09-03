@@ -22,7 +22,7 @@ type MachineSettings = {
   product_count_set: number | string;
 };
 
-const API = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const API = import.meta.env.VITE_API_BASE_URL ?? "http://192.168.1.20:8000";
 
 export default function MachineControl() {
   // Demo defaults (we won’t save these anywhere)
@@ -83,6 +83,35 @@ export default function MachineControl() {
   // For the demo: show float1 inside Auto S1 Speed, float2 beside it.
   const speedValue = m?.float1 ?? s.auto_s1_speed;
 
+
+  function resetPcs() {
+
+    fetch(`${API}/reset-psc/`, { method: "POST" })
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        setS((o) => ({ ...o, product_count_pcs: 0 }));
+      })
+      .catch((err) => {
+        console.error("Failed to reset pcs:", err);
+        alert("Failed to reset pcs");
+      });
+
+  }
+
+
+  function resetSet() {
+
+    fetch(`${API}/reset-set/`, { method: "POST" })
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        setS((o) => ({ ...o, product_count_set: 0 }));
+      })
+      .catch((err) => {
+        console.error("Failed to reset set:", err);
+        alert("Failed to reset set");
+      });
+  }
+
   return (
     <div className="hmi-viewport">
       <div className="hmi-panel">
@@ -97,28 +126,6 @@ export default function MachineControl() {
         <div className="hmi-inner-border">
           <Container>
             {/* Live values strip from /status/ */}
-            {/* <Row className="mb-2 mt-3">
-              <Col md={6}>
-                <div className="d-flex align-items-center gap-2">
-                  <span className="hmi-label">Live Float1:</span>
-                  <span className="hmi-value">
-                    {m?.float1 == null ? "—" : m.float1.toFixed(2)}
-                  </span>
-                  <span className="hmi-unit">mm/s</span>
-                </div>
-              </Col>
-              <Col md={6}>
-                <div className="d-flex align-items-center gap-2">
-                  <span className="hmi-label">Live Float2:</span>
-                  <span className="hmi-value">
-                    {m?.float2 == null ? "—" : m.float2.toFixed(2)}
-                  </span>
-                </div>
-              </Col>
-              <Col md={12}>
-                <div className="text-muted small">raw: [{m?.raw?.join(", ") ?? ""}]</div>
-              </Col>
-            </Row> */}
 
             {/* Speed row with No of Roll on same line */}
             <Row className="mt-3">
@@ -133,12 +140,12 @@ export default function MachineControl() {
                       className="form-control hmi-input"
                       type="number"
                       step="0.1"
-                      value={speedValue}
+                      value={m?.raw?.[3] ?? speedValue}
                       onChange={onNum("auto_s1_speed")}
                     />
                     <span className="hmi-unit">mm/s</span>
                     <div className="small text-muted">
-                      (live from /status/: {m?.float1 == null ? "—" : m.float1.toFixed(2)})
+                      (live from /status/: {m?.raw?.[4] ?? "N/A"})
                     </div>
                   </Col>
                 </Row>
@@ -178,7 +185,7 @@ export default function MachineControl() {
                 <input
                   className="form-control hmi-input"
                   type="number"
-                  value={s.auto_s1_acc}
+                  value={m?.raw?.[6] ?? 0}
                   onChange={onNum("auto_s1_acc")}
                 />
               </Col>
@@ -192,7 +199,7 @@ export default function MachineControl() {
                 <input
                   className="form-control hmi-input"
                   type="number"
-                  value={s.auto_s1_dec}
+                  value={m?.raw?.[8] ?? 0}
                   onChange={onNum("auto_s1_dec")}
                 />
               </Col>
@@ -207,7 +214,7 @@ export default function MachineControl() {
                   className="form-control hmi-input"
                   type="number"
                   step="0.1"
-                  value={s.auto_s1_single_step}
+                  value={m?.raw?.[10] ?? 0}
                   onChange={onNum("auto_s1_single_step")}
                 />
               </Col>
@@ -222,7 +229,7 @@ export default function MachineControl() {
                   className="form-control hmi-input"
                   type="number"
                   step="0.1"
-                  value={s.auto_s1_last_step}
+                  value={m?.raw?.[12] ?? 0}
                   onChange={onNum("auto_s1_last_step")}
                 />
                 <span className="hmi-unit">mm</span>
@@ -248,7 +255,7 @@ export default function MachineControl() {
                     <button
                       type="button"
                       className="btn btn-primary hmi-reset"
-                      onClick={() => setS((o) => ({ ...o, product_count_pcs: 0 }))}
+                      onClick={() => resetPcs()}
                     >
                       Reset
                     </button>
@@ -276,7 +283,7 @@ export default function MachineControl() {
                     <button
                       type="button"
                       className="btn btn-primary hmi-reset"
-                      onClick={() => setS((o) => ({ ...o, product_count_set: 0 }))}
+                      onClick={() => resetSet()}
                     >
                       Reset
                     </button>
